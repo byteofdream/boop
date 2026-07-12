@@ -12,22 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$title_val) $error = __('title_required');
     elseif (!$content) $error = __('content_required');
     else {
-        $id = generate_id();
-
-        $posts = get_posts();
-        $posts[] = [
-            'id' => $id,
-            'title' => $title_val,
-            'content' => $content,
-            'author' => $_SESSION['username'],
-            'tags' => extract_tags($content),
-            'upvotes' => 0,
-            'downvotes' => 0,
-            'voters' => [],
-            'comments' => [],
-            'created_at' => time(),
-        ];
-        save_posts($posts);
+        $id = create_post($title_val, $content, $_SESSION['username'], extract_tags($content));
         $success = __('post_created');
         redirect('post.php?id=' . urlencode($id));
     }

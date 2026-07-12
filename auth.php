@@ -7,31 +7,18 @@ function register_user($username, $password) {
     if (!preg_match('/^[a-zA-Z0-9_-]+$/', $username)) return __('username_chars');
     if (strlen($password) < 4) return __('password_length');
 
-    $users = get_users();
-    foreach ($users as $u) {
-        if ($u['username'] === $username) return __('username_taken');
-    }
+    if (get_user($username)) return __('username_taken');
 
-    $users[] = [
-        'id' => generate_id(),
-        'username' => $username,
-        'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-        'created_at' => time(),
-        'bio' => '',
-    ];
-
-    save_users($users);
+    create_user($username, password_hash($password, PASSWORD_DEFAULT));
     $_SESSION['username'] = $username;
     return null;
 }
 
 function login_user($username, $password) {
-    $users = get_users();
-    foreach ($users as $u) {
-        if ($u['username'] === $username && password_verify($password, $u['password_hash'])) {
-            $_SESSION['username'] = $username;
-            return null;
-        }
+    $user = get_user($username);
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['username'] = $username;
+        return null;
     }
     return __('invalid_credentials');
 }

@@ -6,20 +6,7 @@ $post = get_post($id);
 if (!$post) { $title = __('post_not_found'); require __DIR__ . '/header.php'; echo '<div class="empty-state"><h2>' . __('post_not_found') . '</h2><p>' . __('go_home') . '</p></div>'; require __DIR__ . '/footer.php'; exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment']) && is_logged_in()) {
-    $posts = get_posts();
-    foreach ($posts as &$p) {
-        if ($p['id'] === $id) {
-            $p['comments'][] = [
-                'id' => generate_id(),
-                'author' => $_SESSION['username'],
-                'content' => trim($_POST['comment']),
-                'created_at' => time(),
-            ];
-            break;
-        }
-    }
-    save_posts($posts);
-    $post = get_post($id);
+    add_comment($id, $_SESSION['username'], trim($_POST['comment']));
     redirect('post.php?id=' . urlencode($id));
 }
 

@@ -1,6 +1,6 @@
 # boop
 
-A minimal, Reddit-like social network written in pure PHP with no external dependencies. No Composer, no frameworks, no database — just PHP and JSON files.
+A minimal, Reddit-like social network written in pure PHP with no external dependencies. No Composer, no frameworks — just PHP and MySQL.
 
 ## features
 
@@ -14,6 +14,7 @@ A minimal, Reddit-like social network written in pure PHP with no external depen
 - **Feed sorting** — sort by newest or top score
 - **Pagination** — 20 posts per page
 - **Avatars** — auto-generated SVG initials fallback, custom upload supported
+- **MySQL storage** — relational database, schema in `schema.sql`
 - **Secure** — passwords stored as bcrypt hashes only, file upload MIME validation
 - **i18n** — English and Russian interface with one-click switching (EN/RU in nav)
 - **Theme** — orange-on-black minimalist design
@@ -21,18 +22,23 @@ A minimal, Reddit-like social network written in pure PHP with no external depen
 ## requirements
 
 - PHP 8.0+
-- Extensions: `fileinfo`, `mbstring` (both commonly enabled by default)
+- MySQL 5.7+
+- Extensions: `fileinfo`, `mbstring`, `mysqli` (all commonly enabled by default)
 
 ## quick start
 
 ```bash
+# 1. Import the database schema
+mysql -u root < schema.sql
+
+# 2. Edit database credentials in config.php if needed
+
+# 3. Start the dev server
 cd boop
 php -S localhost:8000
 ```
 
 Open `http://localhost:8000` in your browser.
-
-No setup, no configuration, no database migration. Just run and use.
 
 ## project structure
 
@@ -54,8 +60,8 @@ boop/
 ├── header.php          # site header + nav
 ├── footer.php          # site footer
 ├── lang/               # interface translations (en.php, ru.php)
+├── schema.sql          # MySQL database schema
 ├── style.css           # orange-black theme
-├── data/               # JSON storage (users, posts)
 ├── uploads/            # uploaded files (avatars, images)
 ├── README.md
 └── README.ru.md

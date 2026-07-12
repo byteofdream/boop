@@ -20,45 +20,184 @@ function __($key, $vars = []) {
     return $str;
 }
 
-function json_read($file) {
-    $path = DATA_DIR . '/' . $file;
-    if (!file_exists($path)) return [];
-    $data = file_get_contents($path);
-    return json_decode($data, true) ?: [];
+function db() {
+    static $conn = null;
+    if ($conn === null) {
+        $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        if ($conn->connect_error) {
+            die('DB error: ' . $conn->connect_error);
+        }
+        $conn->set_charset('utf8mb4');
+    }
+    return $conn;
 }
-
-function json_write($file, $data) {
-    $path = DATA_DIR . '/' . $file;
-    file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
-}
-
-function get_users() { return json_read('users.json'); }
-function save_users($users) { json_write('users.json', $users); }
-function get_posts() { return json_read('posts.json'); }
-function save_posts($posts) { json_write('posts.json', $posts); }
 
 function get_user($username) {
-    $users = get_users();
-    foreach ($users as $u) {
-        if ($u['username'] === $username) return $u;
-    }
-    return null;
+    $stmt = db()->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
 }
 
 function get_user_by_id($id) {
-    $users = get_users();
-    foreach ($users as $u) {
-        if ($u['id'] === $id) return $u;
+    $stmt = db()->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->bind_param('s', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
+}
+
+function create_user($username, $password_hash) {
+    $stmt = db()->prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)");
+    $id = generate_id();
+    $time = time();
+    $stmt->bind_param('sssi', $id, $username, $password_hash, $time);
+    $stmt->execute();
+}
+
+function get_posts() {
+    $conn = db();
+    $result = $conn->query("
+        SELECT p.*,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+        FROM posts p
+        ORDER BY p.created_at DESC
+    ");
+    $posts = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['tags'] = json_decode($row['tags'] ?? '[]', true) ?: [];
+        $row['comments'] = [];
+        $row['voters'] = [];
+        $row['content_preview'] = '';
+        $posts[$row['id']] = $row;
     }
-    return null;
+
+    if (!empty($posts) && is_logged_in()) {
+        $ids = array_keys($posts);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $types = str_repeat('s', count($ids));
+        $stmt = $conn->prepare("SELECT post_id, username, vote_type FROM votes WHERE post_id IN ($placeholders)");
+        $stmt->bind_param($types, ...$ids);
+        $stmt->execute();
+        $vresult = $stmt->get_result();
+        while ($vrow = $vresult->fetch_assoc()) {
+            $posts[$vrow['post_id']]['voters'][$vrow['username']] = $vrow['vote_type'];
+        }
+    }
+
+    return array_values($posts);
 }
 
 function get_post($id) {
-    $posts = get_posts();
-    foreach ($posts as $p) {
-        if ($p['id'] === $id) return $p;
+    $conn = db();
+    $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ?");
+    $stmt->bind_param('s', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $post = $result->fetch_assoc();
+    if (!$post) return null;
+
+    $post['tags'] = json_decode($post['tags'] ?? '[]', true) ?: [];
+
+    $cstmt = $conn->prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC");
+    $cstmt->bind_param('s', $id);
+    $cstmt->execute();
+    $cresult = $cstmt->get_result();
+    $post['comments'] = [];
+    while ($c = $cresult->fetch_assoc()) {
+        $post['comments'][] = $c;
     }
-    return null;
+
+    $vstmt = $conn->prepare("SELECT username, vote_type FROM votes WHERE post_id = ?");
+    $vstmt->bind_param('s', $id);
+    $vstmt->execute();
+    $vresult = $vstmt->get_result();
+    $post['voters'] = [];
+    while ($v = $vresult->fetch_assoc()) {
+        $post['voters'][$v['username']] = $v['vote_type'];
+    }
+
+    return $post;
+}
+
+function create_post($title, $content, $author, $tags) {
+    $stmt = db()->prepare("INSERT INTO posts (id, title, content, author, tags, created_at) VALUES (?, ?, ?, ?, ?, ?)");
+    $id = generate_id();
+    $time = time();
+    $tags_json = json_encode($tags);
+    $stmt->bind_param('sssssi', $id, $title, $content, $author, $tags_json, $time);
+    $stmt->execute();
+    return $id;
+}
+
+function add_comment($post_id, $author, $content) {
+    $stmt = db()->prepare("INSERT INTO comments (id, post_id, author, content, created_at) VALUES (?, ?, ?, ?, ?)");
+    $id = generate_id();
+    $time = time();
+    $stmt->bind_param('ssssi', $id, $post_id, $author, $content, $time);
+    $stmt->execute();
+}
+
+function update_vote($post_id, $username, $action) {
+    $conn = db();
+    $stmt = $conn->prepare("SELECT vote_type FROM votes WHERE post_id = ? AND username = ?");
+    $stmt->bind_param('ss', $post_id, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $existing = $result->fetch_assoc();
+
+    if ($action === 'upvote') {
+        if ($existing) {
+            if ($existing['vote_type'] === 'up') {
+                $dstmt = $conn->prepare("DELETE FROM votes WHERE post_id = ? AND username = ?");
+                $dstmt->bind_param('ss', $post_id, $username);
+                $dstmt->execute();
+                $ustmt = $conn->prepare("UPDATE posts SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?");
+                $ustmt->bind_param('s', $post_id);
+                $ustmt->execute();
+            } else {
+                $ustmt = $conn->prepare("UPDATE votes SET vote_type = 'up' WHERE post_id = ? AND username = ?");
+                $ustmt->bind_param('ss', $post_id, $username);
+                $ustmt->execute();
+                $ustmt2 = $conn->prepare("UPDATE posts SET upvotes = upvotes + 1, downvotes = GREATEST(downvotes - 1, 0) WHERE id = ?");
+                $ustmt2->bind_param('s', $post_id);
+                $ustmt2->execute();
+            }
+        } else {
+            $istmt = $conn->prepare("INSERT INTO votes (post_id, username, vote_type) VALUES (?, ?, 'up')");
+            $istmt->bind_param('ss', $post_id, $username);
+            $istmt->execute();
+            $ustmt = $conn->prepare("UPDATE posts SET upvotes = upvotes + 1 WHERE id = ?");
+            $ustmt->bind_param('s', $post_id);
+            $ustmt->execute();
+        }
+    } elseif ($action === 'downvote') {
+        if ($existing) {
+            if ($existing['vote_type'] === 'down') {
+                $dstmt = $conn->prepare("DELETE FROM votes WHERE post_id = ? AND username = ?");
+                $dstmt->bind_param('ss', $post_id, $username);
+                $dstmt->execute();
+                $ustmt = $conn->prepare("UPDATE posts SET downvotes = GREATEST(downvotes - 1, 0) WHERE id = ?");
+                $ustmt->bind_param('s', $post_id);
+                $ustmt->execute();
+            } else {
+                $ustmt = $conn->prepare("UPDATE votes SET vote_type = 'down' WHERE post_id = ? AND username = ?");
+                $ustmt->bind_param('ss', $post_id, $username);
+                $ustmt->execute();
+                $ustmt2 = $conn->prepare("UPDATE posts SET downvotes = downvotes + 1, upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?");
+                $ustmt2->bind_param('s', $post_id);
+                $ustmt2->execute();
+            }
+        } else {
+            $istmt = $conn->prepare("INSERT INTO votes (post_id, username, vote_type) VALUES (?, ?, 'down')");
+            $istmt->bind_param('ss', $post_id, $username);
+            $istmt->execute();
+            $ustmt = $conn->prepare("UPDATE posts SET downvotes = downvotes + 1 WHERE id = ?");
+            $ustmt->bind_param('s', $post_id);
+            $ustmt->execute();
+        }
+    }
 }
 
 function generate_id() {
