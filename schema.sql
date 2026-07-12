@@ -1,6 +1,8 @@
-USE gs139102;
+-- Database reference (tables are auto-created by migrations.php)
+-- Only needed if you want to create the database manually.
+-- Usage: mysql -u root -e "CREATE DATABASE IF NOT EXISTS boop"
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(32) PRIMARY KEY,
     username VARCHAR(30) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
@@ -8,7 +10,7 @@ CREATE TABLE users (
     bio TEXT DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS posts (
     id VARCHAR(32) PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
@@ -21,7 +23,7 @@ CREATE TABLE posts (
     INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE comments (
+CREATE TABLE IF NOT EXISTS comments (
     id VARCHAR(32) PRIMARY KEY,
     post_id VARCHAR(32) NOT NULL,
     author VARCHAR(30) NOT NULL,
@@ -31,7 +33,7 @@ CREATE TABLE comments (
     INDEX idx_post (post_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE votes (
+CREATE TABLE IF NOT EXISTS votes (
     post_id VARCHAR(32) NOT NULL,
     username VARCHAR(30) NOT NULL,
     vote_type ENUM('up', 'down') NOT NULL,

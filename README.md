@@ -15,6 +15,7 @@ A minimal, Reddit-like social network written in pure PHP with no external depen
 - **Pagination** — 20 posts per page
 - **Avatars** — auto-generated SVG initials fallback, custom upload supported
 - **MySQL storage** — relational database, schema in `schema.sql`
+- **Auto-migrations** — tables created automatically, new features add their own migrations
 - **Secure** — passwords stored as bcrypt hashes only, file upload MIME validation
 - **i18n** — English and Russian interface with one-click switching (EN/RU in nav)
 - **Theme** — orange-on-black minimalist design
@@ -28,8 +29,8 @@ A minimal, Reddit-like social network written in pure PHP with no external depen
 ## quick start
 
 ```bash
-# 1. Import the database schema
-mysql -u root < schema.sql
+# 1. Create the database in MySQL
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS boop"
 
 # 2. Edit database credentials in config.php if needed
 
@@ -39,6 +40,8 @@ php -S localhost:8000
 ```
 
 Open `http://localhost:8000` in your browser.
+
+The app will auto-create all required tables on first run (see `migrations.php`).
 
 ## project structure
 
@@ -59,8 +62,8 @@ boop/
 ├── auth.php            # auth logic
 ├── header.php          # site header + nav
 ├── footer.php          # site footer
+├── migrations.php      # auto-migrations (creates tables, add new features here)
 ├── lang/               # interface translations (en.php, ru.php)
-├── schema.sql          # MySQL database schema
 ├── style.css           # orange-black theme
 ├── uploads/            # uploaded files (avatars, images)
 ├── README.md
