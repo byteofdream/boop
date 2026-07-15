@@ -6,6 +6,9 @@ $post = get_post($id);
 if (!$post) { $title = __('post_not_found'); require __DIR__ . '/header.php'; echo '<div class="empty-state"><h2>' . __('post_not_found') . '</h2><p>' . __('go_home') . '</p></div>'; require __DIR__ . '/footer.php'; exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment']) && is_logged_in()) {
+    if (is_banned($_SESSION['username'])) {
+        redirect('login.php');
+    }
     add_comment($id, $_SESSION['username'], trim($_POST['comment']));
     redirect('post.php?id=' . urlencode($id));
 }
@@ -19,7 +22,7 @@ require_once __DIR__ . '/header.php';
 <img class="post-avatar" src="<?= get_avatar_url($post['author']) ?>" alt="">
 <div style="flex:1">
 <div class="post-meta">
-<a href="profile.php?user=<?= urlencode($post['author']) ?>"><?= htmlspecialchars($post['author']) ?></a>
+<a href="profile.php?user=<?= urlencode($post['author']) ?>"><?= htmlspecialchars($post['author']) ?></a><?php if (has_checkmark($post['author'])): ?><span class="checkmark">&#10003;</span><?php endif; ?>
 &middot; <?= time_ago($post['created_at']) ?>
 </div>
 <div class="post-title"><?= htmlspecialchars($post['title']) ?></div>
@@ -71,7 +74,7 @@ require_once __DIR__ . '/header.php';
 <?php foreach (array_reverse($post['comments']) as $cmt): ?>
 <div class="comment">
 <div class="meta">
-<a href="profile.php?user=<?= urlencode($cmt['author']) ?>"><?= htmlspecialchars($cmt['author']) ?></a>
+<a href="profile.php?user=<?= urlencode($cmt['author']) ?>"><?= htmlspecialchars($cmt['author']) ?></a><?php if (has_checkmark($cmt['author'])): ?><span class="checkmark">&#10003;</span><?php endif; ?>
 &middot; <?= time_ago($cmt['created_at']) ?>
 </div>
 <div class="body"><?= format_comment_text($cmt['content']) ?></div>

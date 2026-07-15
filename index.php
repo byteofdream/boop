@@ -38,7 +38,7 @@ require_once __DIR__ . '/header.php';
 <img class="post-avatar" src="<?= get_avatar_url($post['author']) ?>" alt="">
 <div style="flex:1">
 <div class="post-meta">
-<a href="profile.php?user=<?= urlencode($post['author']) ?>"><?= htmlspecialchars($post['author']) ?></a>
+<a href="profile.php?user=<?= urlencode($post['author']) ?>"><?= htmlspecialchars($post['author']) ?></a><?php if (has_checkmark($post['author'])): ?><span class="checkmark">&#10003;</span><?php endif; ?>
 &middot; <?= time_ago($post['created_at']) ?>
 </div>
 <div class="post-title"><a href="post.php?id=<?= urlencode($post['id']) ?>"><?= htmlspecialchars($post['title']) ?></a></div>

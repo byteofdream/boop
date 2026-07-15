@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/functions.php';
 require_login();
+require_not_banned();
 
 $post_id = $_POST['post_id'] ?? '';
 $action = $_POST['action'] ?? '';

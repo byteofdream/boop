@@ -3,6 +3,7 @@ ini_set('display_errors', 0);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_login();
+require_not_banned();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['file'])) {
     http_response_code(400);

@@ -17,6 +17,9 @@ function register_user($username, $password) {
 function login_user($username, $password) {
     $user = get_user($username);
     if ($user && password_verify($password, $user['password_hash'])) {
+        if (is_banned($username)) {
+            return __('banned');
+        }
         $_SESSION['username'] = $username;
         return null;
     }

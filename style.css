@@ -1468,8 +1468,34 @@ footer a:hover {
 }
 
 /* ============================================
-   38. TOOLTIP
-   ============================================ */
+    37b. CHECKMARK
+    ============================================ */
+.checkmark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.checkmark-badge {
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* ============================================
+    38. TOOLTIP
+    ============================================ */
 [data-tooltip] {
   position: relative;
 }

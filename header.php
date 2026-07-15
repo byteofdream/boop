@@ -39,6 +39,9 @@ setTimeout(function(){ var e=document.getElementById('levelUpToast'); if(e){ e.s
 <nav>
 <?php if (is_logged_in()): ?>
 <a href="create_post.php"><?= __('new_post') ?></a>
+<?php if (is_admin()): ?>
+<a href="admin.php"><?= __('admin_panel') ?></a>
+<?php endif; ?>
 <a href="profile.php?user=<?= urlencode($_SESSION['username']) ?>"><?= __('profile') ?></a>
 <a href="logout.php"><?= __('logout') ?></a>
 <?php else: ?>

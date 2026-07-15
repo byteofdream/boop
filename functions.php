@@ -55,8 +55,11 @@ function get_user_by_id($id) {
 function create_user($username, $password_hash) {
     $id = generate_id();
     $time = time();
-    $stmt = db()->prepare("INSERT INTO users (id, username, password_hash, created_at, last_level) VALUES (?, ?, ?, ?, 0)");
-    $stmt->bind_param('sssi', $id, $username, $password_hash, $time);
+    $check = db()->query("SELECT COUNT(*) FROM users");
+    $count = (int) $check->fetch_row()[0];
+    $role = $count === 0 ? 'admin' : 'user';
+    $stmt = db()->prepare("INSERT INTO users (id, username, password_hash, created_at, last_level, role) VALUES (?, ?, ?, ?, 0, ?)");
+    $stmt->bind_param('sssis', $id, $username, $password_hash, $time, $role);
     $stmt->execute();
 }
 
@@ -250,6 +253,70 @@ function cmp_posts_top($a, $b) {
     $sB = get_post_score($b);
     if ($sB !== $sA) return $sB - $sA;
     return ($b['created_at'] ?? 0) - ($a['created_at'] ?? 0);
+}
+
+/* ===== ADMIN / BAN / CHECKMARK ===== */
+
+function is_admin() {
+    if (!is_logged_in()) return false;
+    $user = get_user($_SESSION['username']);
+    return $user && ($user['role'] ?? 'user') === 'admin';
+}
+
+function require_admin() {
+    if (!is_admin()) {
+        redirect('index.php');
+    }
+}
+
+function is_banned($username) {
+    $stmt = db()->prepare("SELECT 1 FROM bans WHERE username = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    return (bool) $stmt->get_result()->fetch_row();
+}
+
+function require_not_banned() {
+    if (is_logged_in() && is_banned($_SESSION['username'])) {
+        session_destroy();
+        unset($_SESSION['username']);
+        redirect('login.php');
+    }
+}
+
+function ban_user($username, $reason = '') {
+    $time = time();
+    $stmt = db()->prepare("INSERT IGNORE INTO bans (username, banned_by, reason, created_at) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param('sssi', $username, $_SESSION['username'], $reason, $time);
+    $stmt->execute();
+}
+
+function unban_user($username) {
+    $stmt = db()->prepare("DELETE FROM bans WHERE username = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+}
+
+function get_banned_users() {
+    $result = db()->query("SELECT b.*, u.role FROM bans b JOIN users u ON b.username = u.username ORDER BY b.created_at DESC");
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+function get_all_users() {
+    $result = db()->query("SELECT * FROM users ORDER BY created_at DESC");
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+function set_checkmark($username, $value) {
+    $v = $value ? 1 : 0;
+    $stmt = db()->prepare("UPDATE users SET checkmark = ? WHERE username = ?");
+    $stmt->bind_param('is', $v, $username);
+    $stmt->execute();
+}
+
+function has_checkmark($username) {
+    $user = get_user($username);
+    return $user && ($user['checkmark'] ?? 0) == 1;
 }
 
 /* ===== ACHIEVEMENT SYSTEM ===== */

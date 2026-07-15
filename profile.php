@@ -50,7 +50,7 @@ require_once __DIR__ . '/header.php';
 <?php endif; ?>
 </div>
 <div>
-<div class="username"><?= htmlspecialchars($username) ?></div>
+<div class="username"><?= htmlspecialchars($username) ?> <?php if (has_checkmark($username)): ?><span class="checkmark">&#10003;</span><?php endif; ?></div>
 <div class="meta"><?= __('joined', ['time' => time_ago($user['created_at'])]) ?> &middot; <?= count($user_posts) ?> <?= __('posts') ?></div>
 </div>
 </div>

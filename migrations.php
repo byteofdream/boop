@@ -68,6 +68,24 @@ function run_migrations($conn) {
             'name' => 'add last_level to users',
             'sql' => "ALTER TABLE users ADD COLUMN last_level INT DEFAULT 0",
         ],
+        'admin_role' => [
+            'name' => 'add role to users',
+            'sql' => "ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'",
+        ],
+        'user_checkmark' => [
+            'name' => 'add checkmark to users',
+            'sql' => "ALTER TABLE users ADD COLUMN checkmark TINYINT(1) DEFAULT 0",
+        ],
+        'bans_table' => [
+            'name' => 'bans table',
+            'sql' => "CREATE TABLE IF NOT EXISTS bans (
+                username VARCHAR(30) PRIMARY KEY,
+                banned_by VARCHAR(30) NOT NULL,
+                reason TEXT,
+                created_at INT NOT NULL,
+                FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        ],
     ];
 
     foreach ($all as $id => $m) {
