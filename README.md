@@ -18,7 +18,7 @@ A minimal, Reddit-like social network written in pure PHP with no external depen
 - **Auto-migrations** — tables created automatically, new features add their own migrations
 - **Secure** — passwords stored as bcrypt hashes only, file upload MIME validation
 - **i18n** — English and Russian interface with one-click switching (EN/RU in nav)
-- **Theme** — orange-on-black minimalist design
+- **Theme** — minimalist design
 
 ## requirements
 
