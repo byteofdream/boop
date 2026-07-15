@@ -64,7 +64,7 @@ boop/
 ├── footer.php          # site footer
 ├── migrations.php      # auto-migrations (creates tables, add new features here)
 ├── lang/               # interface translations (en.php, ru.php)
-├── style.css           # orange-black theme
+├── style.css           # styles
 ├── uploads/            # uploaded files (avatars, images)
 ├── README.md
 └── README.ru.md
