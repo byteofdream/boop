@@ -64,7 +64,7 @@ boop/
 ├── footer.php          # подвал
 ├── migrations.php      # автомиграции (создаёт таблицы, новые фичи добавлять сюда)
 ├── lang/               # переводы интерфейса (en.php, ru.php)
-├── style.css           # оранжево-чёрная тема
+├── style.css           # стили
 ├── uploads/            # загруженные файлы (avatars, images)
 ├── README.md
 └── README.ru.md
