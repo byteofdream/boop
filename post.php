@@ -27,7 +27,7 @@ require_once __DIR__ . '/header.php';
 <?php if (!empty($post['tags'])): ?>
 <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
 <?php foreach ($post['tags'] as $tag): ?>
-<a href="search.php?q=%23<?= urlencode($tag) ?>" class="tag" style="background:#2a2a2a;padding:2px 10px;border-radius:4px;font-size:12px">#<?= htmlspecialchars($tag) ?></a>
+<a href="search.php?q=%23<?= urlencode($tag) ?>" class="tag">#<?= htmlspecialchars($tag) ?></a>
 <?php endforeach; ?>
 </div>
 <?php endif; ?>
@@ -52,7 +52,7 @@ require_once __DIR__ . '/header.php';
 </div>
 </div>
 
-<h3 style="color:#888;font-size:14px;margin:24px 0 12px;text-transform:uppercase;letter-spacing:0.5px"><?= __('comments_count', ['count' => count($post['comments'] ?? [])]) ?></h3>
+<h3 style="color:var(--text-tertiary);font-size:14px;margin:24px 0 12px;text-transform:uppercase;letter-spacing:0.5px"><?= __('comments_count', ['count' => count($post['comments'] ?? [])]) ?></h3>
 
 <?php if (is_logged_in()): ?>
 <form method="post" style="margin-bottom:20px">
@@ -62,11 +62,11 @@ require_once __DIR__ . '/header.php';
 <button type="submit" class="btn btn-small"><?= __('comment') ?></button>
 </form>
 <?php else: ?>
-<p style="color:#666;font-size:14px;margin-bottom:16px"><?= __('login_to_comment') ?></p>
+<p style="color:var(--text-tertiary);font-size:14px;margin-bottom:16px"><?= __('login_to_comment') ?></p>
 <?php endif; ?>
 
 <?php if (empty($post['comments'])): ?>
-<p style="color:#555;font-size:13px"><?= __('no_comments_yet') ?></p>
+<p style="color:var(--text-muted);font-size:13px"><?= __('no_comments_yet') ?></p>
 <?php else: ?>
 <?php foreach (array_reverse($post['comments']) as $cmt): ?>
 <div class="comment">

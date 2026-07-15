@@ -26,7 +26,7 @@ require_once __DIR__ . '/header.php';
 <input type="password" name="password" required autocomplete="current-password">
 </div>
 <button type="submit" class="btn"><?= __('login') ?></button>
-<p style="margin-top:16px;font-size:13px;color:#666"><?= __('no_account') ?></p>
+<p style="margin-top:16px;font-size:13px;color:var(--text-tertiary)"><?= __('no_account') ?></p>
 </form>
 </div>
 

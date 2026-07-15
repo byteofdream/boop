@@ -1,11 +1,12 @@
 <?php
 session_start();
 
-define('DB_HOST', '');
-define('DB_USER', '');
-define('DB_PASS', '');
-define('DB_NAME', '');
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '123123123');
+define('DB_NAME', 'boop');
 
+define('DATA_DIR', __DIR__ . '/data');
 define('UPLOAD_DIR', __DIR__ . '/uploads');
 define('AVATAR_DIR', UPLOAD_DIR . '/avatars');
 define('IMAGE_DIR', UPLOAD_DIR . '/images');

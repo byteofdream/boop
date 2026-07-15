@@ -22,7 +22,7 @@ $title = __('new_post_title');
 require_once __DIR__ . '/header.php';
 ?>
 
-<h1 style="font-size:22px;color:#eee;margin-bottom:20px"><?= __('new_post_title') ?></h1>
+<h1 style="font-size:22px;color:var(--text-primary);margin-bottom:20px"><?= __('new_post_title') ?></h1>
 
 <?php if ($error): ?><div class="error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 <?php if ($success): ?><div class="success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
@@ -34,7 +34,7 @@ require_once __DIR__ . '/header.php';
 </div>
 <div class="form-group">
 <label><?= __('content') ?></label>
-<p style="font-size:12px;color:#555;margin-bottom:8px"><?= __('formatting_hint') ?></p>
+<p style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px"><?= __('formatting_hint') ?></p>
 <textarea name="content" id="content-textarea" required><?= htmlspecialchars($_POST['content'] ?? '') ?></textarea>
 </div>
 <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
@@ -55,18 +55,15 @@ document.getElementById('file-input').addEventListener('change', function(e) {
 
 document.getElementById('upload-area').addEventListener('dragover', function(e) {
     e.preventDefault();
-    this.style.borderColor = '#ff6600';
-    this.style.color = '#ff6600';
+    this.classList.add('dragover');
 });
 document.getElementById('upload-area').addEventListener('dragleave', function(e) {
     e.preventDefault();
-    this.style.borderColor = '#333';
-    this.style.color = '#666';
+    this.classList.remove('dragover');
 });
 document.getElementById('upload-area').addEventListener('drop', function(e) {
     e.preventDefault();
-    this.style.borderColor = '#333';
-    this.style.color = '#666';
+    this.classList.remove('dragover');
     for (let file of e.dataTransfer.files) {
         if (file.type.startsWith('image/')) uploadFile(file);
     }

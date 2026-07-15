@@ -42,57 +42,46 @@ function get_user($username) {
     $stmt = db()->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->bind_param('s', $username);
     $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
+    return $stmt->get_result()->fetch_assoc();
 }
 
 function get_user_by_id($id) {
     $stmt = db()->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->bind_param('s', $id);
     $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
+    return $stmt->get_result()->fetch_assoc();
 }
 
 function create_user($username, $password_hash) {
-    $stmt = db()->prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)");
     $id = generate_id();
     $time = time();
+    $stmt = db()->prepare("INSERT INTO users (id, username, password_hash, created_at, last_level) VALUES (?, ?, ?, ?, 0)");
     $stmt->bind_param('sssi', $id, $username, $password_hash, $time);
     $stmt->execute();
 }
 
 function get_posts() {
     $conn = db();
-    $result = $conn->query("
-        SELECT p.*,
-            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-        FROM posts p
-        ORDER BY p.created_at DESC
-    ");
+    $result = $conn->query("SELECT * FROM posts ORDER BY created_at DESC");
     $posts = [];
     while ($row = $result->fetch_assoc()) {
         $row['tags'] = json_decode($row['tags'] ?? '[]', true) ?: [];
         $row['comments'] = [];
         $row['voters'] = [];
-        $row['content_preview'] = '';
-        $posts[$row['id']] = $row;
+        $posts[] = $row;
     }
-
-    if (!empty($posts) && is_logged_in()) {
-        $ids = array_keys($posts);
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $types = str_repeat('s', count($ids));
-        $stmt = $conn->prepare("SELECT post_id, username, vote_type FROM votes WHERE post_id IN ($placeholders)");
-        $stmt->bind_param($types, ...$ids);
-        $stmt->execute();
-        $vresult = $stmt->get_result();
-        while ($vrow = $vresult->fetch_assoc()) {
-            $posts[$vrow['post_id']]['voters'][$vrow['username']] = $vrow['vote_type'];
+    if (is_logged_in()) {
+        foreach ($posts as &$p) {
+            $vstmt = $conn->prepare("SELECT username, vote_type FROM votes WHERE post_id = ?");
+            $vstmt->bind_param('s', $p['id']);
+            $vstmt->execute();
+            foreach ($vstmt->get_result() as $v) {
+                $p['voters'][$v['username']] = $v['vote_type'];
+            }
         }
+        unset($p);
     }
-
-    return array_values($posts);
+    return $posts;
 }
 
 function get_post($id) {
@@ -100,47 +89,37 @@ function get_post($id) {
     $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ?");
     $stmt->bind_param('s', $id);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $post = $result->fetch_assoc();
+    $post = $stmt->get_result()->fetch_assoc();
     if (!$post) return null;
-
     $post['tags'] = json_decode($post['tags'] ?? '[]', true) ?: [];
-
     $cstmt = $conn->prepare("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC");
     $cstmt->bind_param('s', $id);
     $cstmt->execute();
-    $cresult = $cstmt->get_result();
-    $post['comments'] = [];
-    while ($c = $cresult->fetch_assoc()) {
-        $post['comments'][] = $c;
-    }
-
+    $post['comments'] = $cstmt->get_result()->fetch_all(MYSQLI_ASSOC) ?: [];
     $vstmt = $conn->prepare("SELECT username, vote_type FROM votes WHERE post_id = ?");
     $vstmt->bind_param('s', $id);
     $vstmt->execute();
-    $vresult = $vstmt->get_result();
     $post['voters'] = [];
-    while ($v = $vresult->fetch_assoc()) {
+    foreach ($vstmt->get_result() as $v) {
         $post['voters'][$v['username']] = $v['vote_type'];
     }
-
     return $post;
 }
 
 function create_post($title, $content, $author, $tags) {
-    $stmt = db()->prepare("INSERT INTO posts (id, title, content, author, tags, created_at) VALUES (?, ?, ?, ?, ?, ?)");
     $id = generate_id();
     $time = time();
-    $tags_json = json_encode($tags);
-    $stmt->bind_param('sssssi', $id, $title, $content, $author, $tags_json, $time);
+    $tj = json_encode($tags);
+    $stmt = db()->prepare("INSERT INTO posts (id, title, content, author, tags, created_at) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param('sssssi', $id, $title, $content, $author, $tj, $time);
     $stmt->execute();
     return $id;
 }
 
 function add_comment($post_id, $author, $content) {
-    $stmt = db()->prepare("INSERT INTO comments (id, post_id, author, content, created_at) VALUES (?, ?, ?, ?, ?)");
     $id = generate_id();
     $time = time();
+    $stmt = db()->prepare("INSERT INTO comments (id, post_id, author, content, created_at) VALUES (?, ?, ?, ?, ?)");
     $stmt->bind_param('ssssi', $id, $post_id, $author, $content, $time);
     $stmt->execute();
 }
@@ -150,58 +129,45 @@ function update_vote($post_id, $username, $action) {
     $stmt = $conn->prepare("SELECT vote_type FROM votes WHERE post_id = ? AND username = ?");
     $stmt->bind_param('ss', $post_id, $username);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $existing = $result->fetch_assoc();
+    $existing = $stmt->get_result()->fetch_assoc();
 
     if ($action === 'upvote') {
         if ($existing) {
             if ($existing['vote_type'] === 'up') {
-                $dstmt = $conn->prepare("DELETE FROM votes WHERE post_id = ? AND username = ?");
-                $dstmt->bind_param('ss', $post_id, $username);
-                $dstmt->execute();
-                $ustmt = $conn->prepare("UPDATE posts SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?");
-                $ustmt->bind_param('s', $post_id);
-                $ustmt->execute();
+                $d = $conn->prepare("DELETE FROM votes WHERE post_id = ? AND username = ?");
+                $d->bind_param('ss', $post_id, $username); $d->execute();
+                $u = $conn->prepare("UPDATE posts SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?");
+                $u->bind_param('s', $post_id); $u->execute();
             } else {
-                $ustmt = $conn->prepare("UPDATE votes SET vote_type = 'up' WHERE post_id = ? AND username = ?");
-                $ustmt->bind_param('ss', $post_id, $username);
-                $ustmt->execute();
-                $ustmt2 = $conn->prepare("UPDATE posts SET upvotes = upvotes + 1, downvotes = GREATEST(downvotes - 1, 0) WHERE id = ?");
-                $ustmt2->bind_param('s', $post_id);
-                $ustmt2->execute();
+                $upd = $conn->prepare("UPDATE votes SET vote_type = 'up' WHERE post_id = ? AND username = ?");
+                $upd->bind_param('ss', $post_id, $username); $upd->execute();
+                $u = $conn->prepare("UPDATE posts SET upvotes = upvotes + 1, downvotes = GREATEST(downvotes - 1, 0) WHERE id = ?");
+                $u->bind_param('s', $post_id); $u->execute();
             }
         } else {
-            $istmt = $conn->prepare("INSERT INTO votes (post_id, username, vote_type) VALUES (?, ?, 'up')");
-            $istmt->bind_param('ss', $post_id, $username);
-            $istmt->execute();
-            $ustmt = $conn->prepare("UPDATE posts SET upvotes = upvotes + 1 WHERE id = ?");
-            $ustmt->bind_param('s', $post_id);
-            $ustmt->execute();
+            $ins = $conn->prepare("INSERT INTO votes (post_id, username, vote_type) VALUES (?, ?, 'up')");
+            $ins->bind_param('ss', $post_id, $username); $ins->execute();
+            $u = $conn->prepare("UPDATE posts SET upvotes = upvotes + 1 WHERE id = ?");
+            $u->bind_param('s', $post_id); $u->execute();
         }
     } elseif ($action === 'downvote') {
         if ($existing) {
             if ($existing['vote_type'] === 'down') {
-                $dstmt = $conn->prepare("DELETE FROM votes WHERE post_id = ? AND username = ?");
-                $dstmt->bind_param('ss', $post_id, $username);
-                $dstmt->execute();
-                $ustmt = $conn->prepare("UPDATE posts SET downvotes = GREATEST(downvotes - 1, 0) WHERE id = ?");
-                $ustmt->bind_param('s', $post_id);
-                $ustmt->execute();
+                $d = $conn->prepare("DELETE FROM votes WHERE post_id = ? AND username = ?");
+                $d->bind_param('ss', $post_id, $username); $d->execute();
+                $u = $conn->prepare("UPDATE posts SET downvotes = GREATEST(downvotes - 1, 0) WHERE id = ?");
+                $u->bind_param('s', $post_id); $u->execute();
             } else {
-                $ustmt = $conn->prepare("UPDATE votes SET vote_type = 'down' WHERE post_id = ? AND username = ?");
-                $ustmt->bind_param('ss', $post_id, $username);
-                $ustmt->execute();
-                $ustmt2 = $conn->prepare("UPDATE posts SET downvotes = downvotes + 1, upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?");
-                $ustmt2->bind_param('s', $post_id);
-                $ustmt2->execute();
+                $upd = $conn->prepare("UPDATE votes SET vote_type = 'down' WHERE post_id = ? AND username = ?");
+                $upd->bind_param('ss', $post_id, $username); $upd->execute();
+                $u = $conn->prepare("UPDATE posts SET downvotes = downvotes + 1, upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?");
+                $u->bind_param('s', $post_id); $u->execute();
             }
         } else {
-            $istmt = $conn->prepare("INSERT INTO votes (post_id, username, vote_type) VALUES (?, ?, 'down')");
-            $istmt->bind_param('ss', $post_id, $username);
-            $istmt->execute();
-            $ustmt = $conn->prepare("UPDATE posts SET downvotes = downvotes + 1 WHERE id = ?");
-            $ustmt->bind_param('s', $post_id);
-            $ustmt->execute();
+            $ins = $conn->prepare("INSERT INTO votes (post_id, username, vote_type) VALUES (?, ?, 'down')");
+            $ins->bind_param('ss', $post_id, $username); $ins->execute();
+            $u = $conn->prepare("UPDATE posts SET downvotes = downvotes + 1 WHERE id = ?");
+            $u->bind_param('s', $post_id); $u->execute();
         }
     }
 }
@@ -251,11 +217,11 @@ function get_avatar_url($username) {
     if (file_exists(__DIR__ . '/' . $path)) return $path;
     $path = 'uploads/avatars/' . $username . '.gif';
     if (file_exists(__DIR__ . '/' . $path)) return $path;
-    $colors = ['ff6600', 'ff8833', 'cc5500', 'ffaa44', 'dd6600'];
+    $colors = ['8B5CF6', '7C3AED', 'A78BFA', '6D28D9', '9D4EDD', 'C084FC'];
     $hash = crc32($username);
     $color = $colors[abs($hash) % count($colors)];
     $initial = strtoupper($username[0] ?? '?');
-    return 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#' . $color . '" rx="40"/><text x="40" y="47" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="32" font-weight="bold">' . $initial . '</text></svg>');
+    return 'data:image/svg+xml,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#' . $color . '" rx="40"/><text x="40" y="54" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="34" font-weight="bold">' . $initial . '</text></svg>');
 }
 
 function redirect($url) {
@@ -284,4 +250,102 @@ function cmp_posts_top($a, $b) {
     $sB = get_post_score($b);
     if ($sB !== $sA) return $sB - $sA;
     return ($b['created_at'] ?? 0) - ($a['created_at'] ?? 0);
+}
+
+/* ===== ACHIEVEMENT SYSTEM ===== */
+
+function get_user_stats($username) {
+    $conn = db();
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM posts WHERE author = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $posts = (int) $stmt->get_result()->fetch_row()[0];
+
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM comments WHERE author = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $comments = (int) $stmt->get_result()->fetch_row()[0];
+
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(upvotes - downvotes), 0) FROM posts WHERE author = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $score = (int) $stmt->get_result()->fetch_row()[0];
+
+    $user = get_user($username);
+    $age_days = $user ? (int) floor((time() - $user['created_at']) / 86400) : 0;
+
+    return compact('posts', 'comments', 'score', 'age_days');
+}
+
+function get_user_badges($username) {
+    $s = get_user_stats($username);
+    $badges = [];
+
+    $defs = [
+        'age' => [
+            ['id' => 'baby',      'need' => 0,    'tier' => 1],
+            ['id' => 'growing',   'need' => 1,    'tier' => 1],
+            ['id' => 'regular',   'need' => 7,    'tier' => 2],
+            ['id' => 'veteran',   'need' => 30,   'tier' => 3],
+            ['id' => 'ancient',   'need' => 365,  'tier' => 4],
+        ],
+        'posts' => [
+            ['id' => 'first_post',   'need' => 1,  'tier' => 1],
+            ['id' => 'writer',       'need' => 5,  'tier' => 2],
+            ['id' => 'author',       'need' => 10, 'tier' => 3],
+            ['id' => 'publisher',    'need' => 25, 'tier' => 4],
+        ],
+        'comments' => [
+            ['id' => 'first_comment', 'need' => 1,  'tier' => 1],
+            ['id' => 'talkative',     'need' => 10, 'tier' => 2],
+            ['id' => 'chatty',        'need' => 50, 'tier' => 3],
+        ],
+        'score' => [
+            ['id' => 'liked',     'need' => 5,   'tier' => 1],
+            ['id' => 'popular',   'need' => 25,  'tier' => 2],
+            ['id' => 'famous',    'need' => 100, 'tier' => 3],
+            ['id' => 'legendary', 'need' => 500, 'tier' => 4],
+        ],
+    ];
+
+    $map = ['age' => $s['age_days'], 'posts' => $s['posts'], 'comments' => $s['comments'], 'score' => $s['score']];
+
+    foreach ($defs as $cat => $list) {
+        $earned = null;
+        foreach ($list as $b) {
+            if ($map[$cat] >= $b['need']) $earned = $b;
+        }
+        if ($earned) {
+            $badges[] = [
+                'id' => $earned['id'],
+                'tier' => $earned['tier'],
+                'name' => __("badge_{$earned['id']}"),
+                'desc' => __("badge_{$earned['id']}_desc"),
+            ];
+        }
+    }
+
+    return $badges;
+}
+
+function get_user_level($username) {
+    $s = get_user_stats($username);
+    $xp = ($s['posts'] * 10) + ($s['comments'] * 5) + max(0, $s['score']);
+    $level = max(1, (int) floor(sqrt($xp / 12)) + 1);
+    $next_xp = (int) pow($level, 2) * 12;
+    $prev_xp = (int) pow($level - 1, 2) * 12;
+    $progress = $next_xp > $prev_xp ? ($xp - $prev_xp) / ($next_xp - $prev_xp) * 100 : 100;
+    return ['level' => $level, 'xp' => $xp, 'next_xp' => $next_xp, 'progress' => min(100, max(0, $progress))];
+}
+
+function check_level_up($username) {
+    $user = get_user($username);
+    if (!$user) return null;
+    $prev = (int) ($user['last_level'] ?? 0);
+    $info = get_user_level($username);
+    if ($info['level'] <= $prev) return null;
+    $stmt = db()->prepare("UPDATE users SET last_level = ? WHERE username = ?");
+    $stmt->bind_param('is', $info['level'], $username);
+    $stmt->execute();
+    return $info['level'];
 }

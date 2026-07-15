@@ -24,7 +24,7 @@ function run_migrations($conn) {
                 username VARCHAR(30) NOT NULL UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
                 created_at INT NOT NULL,
-                bio TEXT DEFAULT ''
+                bio TEXT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
         ],
         'core_posts' => [
@@ -63,6 +63,10 @@ function run_migrations($conn) {
                 PRIMARY KEY (post_id, username),
                 FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        ],
+        'kvs_achievements' => [
+            'name' => 'add last_level to users',
+            'sql' => "ALTER TABLE users ADD COLUMN last_level INT DEFAULT 0",
         ],
     ];
 

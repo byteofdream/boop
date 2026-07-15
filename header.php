@@ -1,4 +1,12 @@
-<?php require_once __DIR__ . '/config.php'; ?>
+<?php
+if (function_exists('opcache_reset')) opcache_reset();
+require_once __DIR__ . '/config.php';
+
+$level_up_toast = null;
+if (is_logged_in()) {
+    $level_up_toast = check_level_up($_SESSION['username']);
+}
+?>
 <!DOCTYPE html>
 <html lang="<?= $lang_code ?>">
 <head>
@@ -8,6 +16,20 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<?php if ($level_up_toast): ?>
+<div class="level-up-toast" id="levelUpToast">
+  <div class="level-up-toast-icon">&#9733;</div>
+  <div class="level-up-toast-body">
+    <div class="level-up-toast-title"><?= __('level_up_title') ?></div>
+    <div class="level-up-toast-msg"><?= __('level_up', ['level' => $level_up_toast]) ?></div>
+  </div>
+  <button class="level-up-toast-close" onclick="document.getElementById('levelUpToast').remove()">&times;</button>
+</div>
+<script>
+setTimeout(function(){ var e=document.getElementById('levelUpToast'); if(e){ e.style.opacity='0'; e.style.transform='translateX(24px)'; setTimeout(function(){ e.remove(); }, 400); } }, 5000);
+</script>
+<?php endif; ?>
 <header>
 <a href="index.php" class="logo">boop</a>
 <form action="search.php" method="get">
