@@ -15,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment']) && is_logg
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment']) && isset($_POST['comment_id'])) {
     $cmt = get_comment($_POST['comment_id']);
-    if ($cmt && can_edit_comment($cmt) && $cmt['post_id'] === $id) {
+    $can = $cmt && (can_edit_comment($cmt) || (is_logged_in() && $_SESSION['username'] === $post['author']));
+    if ($can && $cmt['post_id'] === $id) {
         delete_comment($_POST['comment_id']);
     }
     redirect('post.php?id=' . urlencode($id));
@@ -108,9 +109,11 @@ require_once __DIR__ . '/header.php';
 <div class="meta">
 <a href="profile.php?user=<?= urlencode($cmt['author']) ?>"><?= htmlspecialchars($cmt['author']) ?></a><?php if (has_checkmark($cmt['author'])): ?><span class="checkmark">&#10003;</span><?php endif; ?>
 &middot; <?= time_ago($cmt['created_at']) ?>
-<?php if (can_edit_comment($cmt)): ?>
+<?php if (can_edit_comment($cmt) || (is_logged_in() && $_SESSION['username'] === $post['author'])): ?>
 &middot;
+<?php if (can_edit_comment($cmt)): ?>
 <button class="btn-ghost" style="font-size:14px" onclick="toggleEditComment('<?= $cmt['id'] ?>')" title="<?= __('edit') ?>">&#9999;</button>
+<?php endif; ?>
 <form method="post" style="display:inline" onsubmit="return confirm('<?= __('confirm_delete') ?>')">
 <input type="hidden" name="delete_comment" value="1">
 <input type="hidden" name="comment_id" value="<?= $cmt['id'] ?>">

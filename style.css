@@ -443,6 +443,7 @@ header nav a:hover {
   margin-bottom: 7px;
   line-height: 1.35;
   letter-spacing: -0.018em;
+  word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -464,6 +465,8 @@ header nav a:hover {
   color: var(--text-secondary);
   margin-bottom: 10px;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
   line-height: 1.7;
 }
 
@@ -1014,6 +1017,9 @@ input[type="checkbox"].toggle:focus-visible {
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.7;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* ============================================
