@@ -13,6 +13,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment']) && is_logg
     redirect('post.php?id=' . urlencode($id));
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment']) && isset($_POST['comment_id'])) {
+    $cmt = get_comment($_POST['comment_id']);
+    if ($cmt && can_edit_comment($cmt) && $cmt['post_id'] === $id) {
+        delete_comment($_POST['comment_id']);
+    }
+    redirect('post.php?id=' . urlencode($id));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_comment']) && isset($_POST['comment_id']) && isset($_POST['comment_content'])) {
+    $cmt = get_comment($_POST['comment_id']);
+    if ($cmt && can_edit_comment($cmt) && $cmt['post_id'] === $id) {
+        update_comment($_POST['comment_id'], trim($_POST['comment_content']));
+    }
+    redirect('post.php?id=' . urlencode($id));
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_post'])) {
+    if (can_edit_post($post)) {
+        delete_post($id);
+        redirect('index.php');
+    }
+    redirect('post.php?id=' . urlencode($id));
+}
+
 $title = $post['title'];
 require_once __DIR__ . '/header.php';
 ?>
@@ -24,6 +48,14 @@ require_once __DIR__ . '/header.php';
 <div class="post-meta">
 <a href="profile.php?user=<?= urlencode($post['author']) ?>"><?= htmlspecialchars($post['author']) ?></a><?php if (has_checkmark($post['author'])): ?><span class="checkmark">&#10003;</span><?php endif; ?>
 &middot; <?= time_ago($post['created_at']) ?>
+<?php if (can_edit_post($post)): ?>
+&middot;
+<a href="edit_post.php?id=<?= urlencode($id) ?>" class="btn-ghost" style="font-size:14px" title="<?= __('edit') ?>">&#9999;</a>
+<form method="post" style="display:inline" onsubmit="return confirm('<?= __('confirm_delete') ?>')">
+<input type="hidden" name="delete_post" value="1">
+<button type="submit" class="btn-ghost" style="font-size:14px;color:var(--danger)" title="<?= __('delete') ?>">&#128465;</button>
+</form>
+<?php endif; ?>
 </div>
 <div class="post-title"><?= htmlspecialchars($post['title']) ?></div>
 <div class="post-content"><?= format_text($post['content']) ?></div>
@@ -76,10 +108,42 @@ require_once __DIR__ . '/header.php';
 <div class="meta">
 <a href="profile.php?user=<?= urlencode($cmt['author']) ?>"><?= htmlspecialchars($cmt['author']) ?></a><?php if (has_checkmark($cmt['author'])): ?><span class="checkmark">&#10003;</span><?php endif; ?>
 &middot; <?= time_ago($cmt['created_at']) ?>
+<?php if (can_edit_comment($cmt)): ?>
+&middot;
+<button class="btn-ghost" style="font-size:14px" onclick="toggleEditComment('<?= $cmt['id'] ?>')" title="<?= __('edit') ?>">&#9999;</button>
+<form method="post" style="display:inline" onsubmit="return confirm('<?= __('confirm_delete') ?>')">
+<input type="hidden" name="delete_comment" value="1">
+<input type="hidden" name="comment_id" value="<?= $cmt['id'] ?>">
+<button type="submit" class="btn-ghost" style="font-size:14px;color:var(--danger)" title="<?= __('delete') ?>">&#128465;</button>
+</form>
+<?php endif; ?>
 </div>
-<div class="body"><?= format_comment_text($cmt['content']) ?></div>
+<div class="body" id="comment-body-<?= $cmt['id'] ?>"><?= format_comment_text($cmt['content']) ?></div>
+<form method="post" id="comment-edit-form-<?= $cmt['id'] ?>" style="display:none;margin-top:8px">
+<input type="hidden" name="edit_comment" value="1">
+<input type="hidden" name="comment_id" value="<?= $cmt['id'] ?>">
+<textarea name="comment_content" style="min-height:60px;margin-bottom:8px"><?= htmlspecialchars($cmt['content'], ENT_COMPAT, 'UTF-8') ?></textarea>
+<div>
+<button type="submit" class="btn btn-small"><?= __('save') ?></button>
+<button type="button" class="btn btn-small btn-outline" onclick="toggleEditComment('<?= $cmt['id'] ?>')"><?= __('cancel') ?></button>
+</div>
+</form>
 </div>
 <?php endforeach; ?>
 <?php endif; ?>
+
+<script>
+function toggleEditComment(id) {
+    var body = document.getElementById('comment-body-' + id);
+    var form = document.getElementById('comment-edit-form-' + id);
+    if (body.style.display === 'none') {
+        body.style.display = '';
+        form.style.display = 'none';
+    } else {
+        body.style.display = 'none';
+        form.style.display = '';
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

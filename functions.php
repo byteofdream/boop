@@ -128,6 +128,50 @@ function add_comment($post_id, $author, $content) {
     $stmt->execute();
 }
 
+function update_post($id, $title, $content) {
+    $tags = json_encode(extract_tags($content));
+    $stmt = db()->prepare("UPDATE posts SET title = ?, content = ?, tags = ? WHERE id = ?");
+    $stmt->bind_param('ssss', $title, $content, $tags, $id);
+    $stmt->execute();
+}
+
+function delete_post($id) {
+    $stmt = db()->prepare("DELETE FROM posts WHERE id = ?");
+    $stmt->bind_param('s', $id);
+    $stmt->execute();
+}
+
+function get_comment($id) {
+    $stmt = db()->prepare("SELECT * FROM comments WHERE id = ?");
+    $stmt->bind_param('s', $id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
+function update_comment($id, $content) {
+    $stmt = db()->prepare("UPDATE comments SET content = ? WHERE id = ?");
+    $stmt->bind_param('ss', $content, $id);
+    $stmt->execute();
+}
+
+function delete_comment($id) {
+    $stmt = db()->prepare("DELETE FROM comments WHERE id = ?");
+    $stmt->bind_param('s', $id);
+    $stmt->execute();
+}
+
+function can_edit_post($post) {
+    if (!is_logged_in()) return false;
+    if (is_admin()) return true;
+    return $_SESSION['username'] === $post['author'];
+}
+
+function can_edit_comment($comment) {
+    if (!is_logged_in()) return false;
+    if (is_admin()) return true;
+    return $_SESSION['username'] === $comment['author'];
+}
+
 function update_vote($post_id, $username, $action) {
     $conn = db();
     $stmt = $conn->prepare("SELECT vote_type FROM votes WHERE post_id = ? AND username = ?");

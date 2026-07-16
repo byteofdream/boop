@@ -138,4 +138,10 @@ return [
     'admin_comment_deleted' => 'Comment deleted',
     'banned' => 'Your account has been banned',
     'checkmark_title' => 'Verified',
+    'edit' => 'edit',
+    'delete' => 'delete',
+    'save' => 'save',
+    'cancel' => 'cancel',
+    'confirm_delete' => 'Are you sure?',
+    'edit_post' => 'edit post',
 ];

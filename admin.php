@@ -56,16 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete_post' && isset($_POST['post_id'])) {
-        $stmt = db()->prepare("DELETE FROM posts WHERE id = ?");
-        $stmt->bind_param('s', $_POST['post_id']);
-        $stmt->execute();
+        delete_post($_POST['post_id']);
         $success = __('admin_post_deleted');
     }
 
     if ($action === 'delete_comment' && isset($_POST['comment_id'])) {
-        $stmt = db()->prepare("DELETE FROM comments WHERE id = ?");
-        $stmt->bind_param('s', $_POST['comment_id']);
-        $stmt->execute();
+        delete_comment($_POST['comment_id']);
         $success = __('admin_comment_deleted');
     }
 }
@@ -121,13 +117,13 @@ require_once __DIR__ . '/header.php';
                 <form method="post" style="display:inline">
                     <input type="hidden" name="action" value="checkmark_off">
                     <input type="hidden" name="username" value="<?= htmlspecialchars($u['username']) ?>">
-                    <button type="submit" class="btn btn-small btn-outline"><?= __('admin_remove_checkmark') ?></button>
+                    <button type="submit" class="btn btn-small btn-outline" title="<?= __('admin_remove_checkmark') ?>">&#10007;</button>
                 </form>
             <?php else: ?>
                 <form method="post" style="display:inline">
                     <input type="hidden" name="action" value="checkmark_on">
                     <input type="hidden" name="username" value="<?= htmlspecialchars($u['username']) ?>">
-                    <button type="submit" class="btn btn-small btn-outline"><?= __('admin_add_checkmark') ?></button>
+                    <button type="submit" class="btn btn-small btn-outline" title="<?= __('admin_add_checkmark') ?>">&#10003;</button>
                 </form>
             <?php endif; ?>
 
@@ -135,14 +131,14 @@ require_once __DIR__ . '/header.php';
                 <form method="post" style="display:inline">
                     <input type="hidden" name="action" value="ban">
                     <input type="hidden" name="username" value="<?= htmlspecialchars($u['username']) ?>">
-                    <input type="text" name="reason" placeholder="<?= __('admin_reason') ?>" style="width:120px;font-size:12px;padding:6px 10px;display:inline-block">
-                    <button type="submit" class="btn btn-small btn-danger"><?= __('admin_ban') ?></button>
+                    <input type="text" name="reason" placeholder="<?= __('admin_reason') ?>" style="width:100px;font-size:11px;padding:4px 8px;display:inline-block">
+                    <button type="submit" class="btn btn-small btn-danger" title="<?= __('admin_ban') ?>">&#128683;</button>
                 </form>
             <?php else: ?>
                 <form method="post" style="display:inline">
                     <input type="hidden" name="action" value="unban">
                     <input type="hidden" name="username" value="<?= htmlspecialchars($u['username']) ?>">
-                    <button type="submit" class="btn btn-small btn-outline"><?= __('admin_unban') ?></button>
+                    <button type="submit" class="btn btn-small btn-outline" title="<?= __('admin_unban') ?>">&#10003;</button>
                 </form>
             <?php endif; ?>
 
@@ -150,13 +146,13 @@ require_once __DIR__ . '/header.php';
                 <form method="post" style="display:inline">
                     <input type="hidden" name="action" value="unset_admin">
                     <input type="hidden" name="username" value="<?= htmlspecialchars($u['username']) ?>">
-                    <button type="submit" class="btn btn-small btn-outline"><?= __('admin_remove_admin') ?></button>
+                    <button type="submit" class="btn btn-small btn-outline" title="<?= __('admin_remove_admin') ?>">&#9733;</button>
                 </form>
             <?php else: ?>
                 <form method="post" style="display:inline">
                     <input type="hidden" name="action" value="set_admin">
                     <input type="hidden" name="username" value="<?= htmlspecialchars($u['username']) ?>">
-                    <button type="submit" class="btn btn-small btn-outline"><?= __('admin_make_admin') ?></button>
+                    <button type="submit" class="btn btn-small btn-outline" title="<?= __('admin_make_admin') ?>">&#9734;</button>
                 </form>
             <?php endif; ?>
         </td>
@@ -190,7 +186,7 @@ require_once __DIR__ . '/header.php';
             <form method="post" style="display:inline">
                 <input type="hidden" name="action" value="unban">
                 <input type="hidden" name="username" value="<?= htmlspecialchars($b['username']) ?>">
-                <button type="submit" class="btn btn-small btn-outline"><?= __('admin_unban') ?></button>
+                <button type="submit" class="btn btn-small btn-outline" title="<?= __('admin_unban') ?>">&#10003;</button>
             </form>
         </td>
     </tr>
@@ -227,7 +223,7 @@ $all_posts = array_slice($all_posts, 0, 50);
             <form method="post" style="display:inline" onsubmit="return confirm('<?= __('admin_confirm_delete') ?>')">
                 <input type="hidden" name="action" value="delete_post">
                 <input type="hidden" name="post_id" value="<?= htmlspecialchars($p['id']) ?>">
-                <button type="submit" class="btn btn-small btn-danger"><?= __('admin_delete') ?></button>
+                <button type="submit" class="btn btn-small btn-danger" title="<?= __('admin_delete') ?>">&#128465;</button>
             </form>
         </td>
     </tr>

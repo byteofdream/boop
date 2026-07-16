@@ -117,7 +117,11 @@ document.getElementById('avatar-input').addEventListener('change', function() {
 <?php foreach ($user_posts as $post): ?>
 <div class="card">
 <div class="post-title"><a href="post.php?id=<?= urlencode($post['id']) ?>"><?= htmlspecialchars($post['title']) ?></a></div>
-<div class="post-meta"><?= time_ago($post['created_at']) ?> &middot; <?= __('score') ?>: <?= get_post_score($post) ?> &middot; <?= count($post['comments'] ?? []) ?> <?= __('comments') ?></div>
+<div class="post-meta"><?= time_ago($post['created_at']) ?> &middot; <?= __('score') ?>: <?= get_post_score($post) ?> &middot; <?= $post['comment_count'] ?> <?= __('comments') ?>
+<?php if ($is_owner || is_admin()): ?>
+&middot; <a href="edit_post.php?id=<?= urlencode($post['id']) ?>" title="<?= __('edit') ?>">&#9999;</a>
+<?php endif; ?>
+</div>
 </div>
 <?php endforeach; ?>
 <?php endif; ?>

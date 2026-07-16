@@ -261,6 +261,21 @@ header .logo:hover {
   -webkit-text-fill-color: transparent;
 }
 
+/* Beta badge next to logo */
+.beta {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  margin-left: 4px;
+  align-self: center;
+}
+
 /* Search form — pill shape */
 header form {
   display: flex;
@@ -1482,7 +1497,7 @@ footer a:hover {
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
-    margin-left: 4px;
+  margin-left: 2px;
     vertical-align: middle;
     flex-shrink: 0;
 }

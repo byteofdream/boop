@@ -31,7 +31,7 @@ setTimeout(function(){ var e=document.getElementById('levelUpToast'); if(e){ e.s
 </script>
 <?php endif; ?>
 <header>
-<a href="index.php" class="logo">boop</a>
+<a href="index.php" class="logo">boop</a><span class="beta">beta</span>
 <form action="search.php" method="get">
 <input type="text" name="q" placeholder="<?= __('search_placeholder') ?>" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
 <button type="submit"><?= __('search') ?></button>
