@@ -59,7 +59,7 @@ require_once __DIR__ . '/header.php';
 <button class="vote-btn <?= (isset($post['voters'][$_SESSION['username'] ?? '']) && $post['voters'][$_SESSION['username']] === 'down') ? 'downvoted' : '' ?>" type="submit">&darr;</button>
 </form>
 </div>
-<a href="post.php?id=<?= urlencode($post['id']) ?>">&#9998; <?= count($post['comments'] ?? []) ?> <?= __('comments') ?></a>
+<a href="post.php?id=<?= urlencode($post['id']) ?>">&#9998; <?= $post['comment_count'] ?> <?= __('comments') ?></a>
 </div>
 </div>
 <?php endforeach; ?>

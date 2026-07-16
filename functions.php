@@ -65,10 +65,11 @@ function create_user($username, $password_hash) {
 
 function get_posts() {
     $conn = db();
-    $result = $conn->query("SELECT * FROM posts ORDER BY created_at DESC");
+    $result = $conn->query("SELECT p.*, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count FROM posts p ORDER BY p.created_at DESC");
     $posts = [];
     while ($row = $result->fetch_assoc()) {
         $row['tags'] = json_decode($row['tags'] ?? '[]', true) ?: [];
+        $row['comment_count'] = (int) ($row['comment_count'] ?? 0);
         $row['comments'] = [];
         $row['voters'] = [];
         $posts[] = $row;
@@ -188,7 +189,7 @@ function time_ago($timestamp) {
 }
 
 function format_text($text) {
-    $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    $text = htmlspecialchars($text, ENT_COMPAT, 'UTF-8');
     $text = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
     $text = preg_replace('/\*(.+?)\*/', '<em>$1</em>', $text);
     $text = preg_replace('/\[img\](.+?)\[\/img\]/', '<div class="post-media"><img src="uploads/images/$1" alt="image" loading="lazy"></div>', $text);
@@ -203,7 +204,7 @@ function extract_tags($text) {
 }
 
 function format_comment_text($text) {
-    $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    $text = htmlspecialchars($text, ENT_COMPAT, 'UTF-8');
     $text = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
     $text = preg_replace('/\*(.+?)\*/', '<em>$1</em>', $text);
     $text = preg_replace('/#(\w+)/', '<a href="search.php?q=%23$1" class="tag">#$1</a>', $text);
